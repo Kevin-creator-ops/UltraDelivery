@@ -1,37 +1,7 @@
-# ADR 0002: Autenticación centralizada mediante OAuth2
-
-## Estado
-Aceptado
-
-## Contexto
-EduCloud debe garantizar que solo usuarios autenticados accedan a clases en vivo, 
-foros y evaluaciones, protegiendo datos académicos y personales conforme a 
-regulaciones como GDPR y FERPA. Implementar un sistema de autenticación propio 
-implicaría un alto costo de desarrollo y mantenimiento, además de mayor riesgo 
-de vulnerabilidades de seguridad.
-
-## Decisión
-Se adoptará OAuth2 como protocolo de autenticación, delegando la验证 de identidad 
-a proveedores externos confiables (Google, Microsoft). El sistema emitirá tokens 
-JWT tras la autenticación exitosa, los cuales serán validados por el API Gateway 
-en cada solicitud a los microservicios (foros, evaluaciones, streaming).
-
-## Consecuencias
-
-**Positivas:**
-- Se reduce el riesgo de manejar contraseñas directamente, delegando esa 
-  responsabilidad a proveedores especializados.
-- Mejora la experiencia de usuario al permitir inicio de sesión único (SSO) 
-  con cuentas ya existentes (Google/Microsoft).
-- Facilita el cumplimiento de estándares de seguridad y regulaciones de 
-  protección de datos.
-
-**Negativas:**
-- El sistema depende de la disponibilidad de los proveedores externos de 
-  identidad (Google/Microsoft); una caída de estos afectaría el acceso.
-- Requiere gestión adicional de expiración y renovación de tokens (JWT refresh).
-- Implica configurar validación de tokens en cada microservicio o de forma 
-  centralizada en el API Gateway.
-
-## Relación con NFRs
-Este ADR responde directamente a **NFR-03 (Seguridad)**.
+| | |
+|---|---|
+| **Título** | 002: Autenticación centralizada mediante OAuth2 |
+| **Estado** | Aceptado |
+| **Contexto** | EduCloud debe garantizar que solo usuarios autenticados accedan a clases en vivo, foros y evaluaciones, protegiendo datos académicos y personales conforme a regulaciones como GDPR y FERPA. Implementar un sistema de autenticación propio implicaría un alto costo de desarrollo, mantenimiento y mayor riesgo de vulnerabilidades de seguridad. |
+| **Decisión** | Se adoptará **OAuth2** como protocolo de autenticación, delegando la verificación de identidad a proveedores externos confiables (Google, Microsoft). El sistema emitirá tokens **JWT** tras la autenticación exitosa, los cuales serán validados por el API Gateway en cada solicitud a los microservicios (foros, evaluaciones, streaming).<br><br>**Rationale:**<br>- **Seguridad:** se evita almacenar y gestionar contraseñas directamente.<br>- **Experiencia de usuario:** permite inicio de sesión único (SSO) con cuentas existentes.<br>- **Cumplimiento normativo:** facilita alinearse con estándares de protección de datos (GDPR, FERPA). |
+| **Consecuencias** | **Positivas:**<br>- Se reduce el riesgo de manejar contraseñas directamente.<br>- Mejora la experiencia de usuario mediante SSO.<br>- Facilita el cumplimiento de regulaciones de protección de datos.<br><br>**Negativas:**<br>- El sistema depende de la disponibilidad de los proveedores externos de identidad.<br>- Requiere gestión adicional de expiración y renovación de tokens (JWT refresh).<br>- Implica configurar validación de tokens en cada microservicio o de forma centralizada.<br><br>**Relación con NFRs:** NFR-03 (Seguridad). |
