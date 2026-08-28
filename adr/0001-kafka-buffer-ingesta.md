@@ -1,1 +1,7 @@
-
+| | |
+|---|---|
+| **Título** | 001: Uso de Kafka como buffer de ingesta para telemetría GPS |
+| **Estado** | Aceptado |
+| **Contexto** | UltraDelivery debe procesar hasta 150,000 pings/seg de GPS provenientes de 80,000 repartidores simultáneos. Un procesamiento síncrono directo hacia la base de datos generaría saturación del buffer de ingesta y pérdida de datos ante picos de carga. |
+| **Decisión** | Se utilizará **Apache Kafka** como message broker para desacoplar la recepción de pings GPS de su procesamiento e indexación. El Servicio de Ingesta publicará los eventos en Kafka, y un Procesador de Streaming los consumirá de forma asíncrona para actualizar la base de datos espacial y el caché geoespacial.<br><br>**Rationale:**<br>- **Resiliencia:** Kafka absorbe picos de carga sin bloquear a los productores.<br>- **Escalabilidad:** permite múltiples particiones y consumidores en paralelo.<br>- **Desacoplamiento:** separa la velocidad de ingesta de la velocidad de procesamiento/indexación. |
+| **Consecuencias** | **Positivas:**<br>- Absorbe picos de hasta 150,000 eventos/seg sin saturar la base de datos.<br>- Permite escalar consumidores de forma independiente.<br>- Tolerante a fallos: los eventos persisten en el broker aunque un consumidor falle temporalmente.<br><br>**Negativas:**<br>- Introduce latencia adicional (procesamiento asíncrono) frente a una escritura directa.<br>- Aumenta la complejidad operativa (gestión de particiones, offsets, replicación).<br>- Requiere monitoreo constante del lag de consumo.<br><br>**Relación con NFRs:** NFR-01 (Escalabilidad), NFR-04 (Confiabilidad/Resiliencia). |
