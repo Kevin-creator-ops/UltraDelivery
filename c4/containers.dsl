@@ -1,58 +1,122 @@
-workspace "UltraDelivery" "Diagrama de contenedores - Plataforma de logística de delivery" {
+workspace "UltraDelivery" "Arquitectura de UltraDelivery - Logística" {
 
     model {
-        cliente = person "Cliente" "Realiza pedidos y hace seguimiento en tiempo real"
-        repartidor = person "Repartidor" "Entrega pedidos y emite telemetría GPS en tiempo real"
-        operador = person "Operador Logístico" "Supervisa la operación y gestiona incidencias"
 
-        ultraDelivery = softwareSystem "UltraDelivery" "Plataforma de logística de delivery" {
-            appCliente = container "App Cliente" "Permite realizar pedidos y ver tracking en tiempo real" "React Native"
-            appRepartidor = container "App Repartidor" "Envía la ubicación GPS y recibe pedidos asignados" "React Native / Kotlin"
-            apiGateway = container "API Gateway" "Enruta las peticiones a los microservicios" "Kong / NGINX"
-
-            servicioIngesta = container "Servicio de Ingesta de Telemetría" "Recibe y procesa los pings GPS de los repartidores" "Node.js / Go"
-            broker = container "Message Broker" "Almacena en buffer los eventos de telemetría para desacoplar ingesta y procesamiento" "Kafka"
-            procesadorStream = container "Procesador de Streaming" "Consume eventos del broker y actualiza posiciones" "Kafka Streams / Flink"
-
-            servicioAsignacion = container "Servicio de Asignación" "Asigna pedidos a repartidores disponibles según ubicación" "Java / Spring Boot"
-            servicioPedidos = container "Servicio de Pedidos" "Gestiona el ciclo de vida de los pedidos" "Node.js"
-            servicioNotificaciones = container "Servicio de Notificaciones" "Envía notificaciones push a clientes y repartidores" "Node.js"
-
-            baseEspacial = container "Base de Datos Espacial" "Almacena e indexa las ubicaciones geográficas para consultas rápidas" "PostgreSQL + PostGIS"
-            baseOperacional = container "Base de Datos Operacional" "Almacena pedidos, usuarios y repartidores" "PostgreSQL"
-            cacheGeo = container "Cache Geoespacial" "Almacena las últimas posiciones conocidas para consultas de baja latencia" "Redis (Redis Geo)"
+        repartidor = person "Repartidor" {
+            description "Usuario que envía su ubicación GPS y recibe notificaciones."
         }
 
-        cliente -> appCliente "Usa" "HTTPS"
-        repartidor -> appRepartidor "Usa" "HTTPS"
-        operador -> apiGateway "Consulta métricas y alertas" "HTTPS"
+        cliente = person "Cliente" {
+            description "Usuario que consulta la ubicación y estado de sus pedidos."
+        }
 
-        appCliente -> apiGateway "Realiza peticiones" "HTTPS/JSON"
-        appRepartidor -> apiGateway "Envía pings GPS y consulta pedidos" "HTTPS/JSON"
+        operador = person "Operador Logístico" {
+            description "Usuario encargado de gestionar pedidos y operaciones logísticas."
+        }
 
-        apiGateway -> servicioIngesta "Enruta telemetría GPS"
-        apiGateway -> servicioPedidos "Enruta gestión de pedidos"
-        apiGateway -> servicioAsignacion "Enruta solicitudes de asignación"
+        ultradelivery = softwareSystem "UltraDelivery" {
 
-        servicioIngesta -> broker "Publica eventos de ubicación" "Kafka Protocol"
-        broker -> procesadorStream "Consume eventos" "Kafka Protocol"
-        procesadorStream -> baseEspacial "Indexa ubicaciones" "SQL"
-        procesadorStream -> cacheGeo "Actualiza última posición conocida" "Redis Protocol"
+            gateway = container "API Gateway" {
+                description "Recibe las conexiones de repartidores, clientes y operadores y distribuye las solicitudes."
+                technology "API Gateway / Load Balancer"
+            }
 
-        servicioAsignacion -> cacheGeo "Consulta repartidores cercanos" "Redis Protocol"
-        servicioAsignacion -> baseOperacional "Lee/escribe asignaciones" "SQL"
-        servicioPedidos -> baseOperacional "Lee/escribe pedidos" "SQL"
-        servicioAsignacion -> servicioNotificaciones "Notifica asignación de pedido"
-        servicioPedidos -> servicioNotificaciones "Notifica estado del pedido"
-        servicioNotificaciones -> appCliente "Envía notificación push"
-        servicioNotificaciones -> appRepartidor "Envía notificación push"
+            ingestion = container "Servicio de Ingesta de Telemetría" {
+                description "Recibe y valida hasta 150.000 pings GPS por segundo y permite escalamiento horizontal."
+                technology "Servicio escalable"
+            }
+
+            buffer = container "Buffer de Telemetría" {
+                description "Almacena temporalmente los eventos GPS para absorber picos de carga y aplicar backpressure."
+                technology "Apache Kafka"
+            }
+
+            processor = container "Procesador de Telemetría" {
+                description "Procesa los eventos GPS en tiempo real y los entrega al servicio de indexación espacial."
+                technology "Streaming Processor"
+            }
+
+            spatial = container "Servicio de Indexación Espacial" {
+                description "Actualiza la posición de los repartidores y realiza consultas espaciales de baja latencia."
+                technology "Servicio de geolocalización"
+            }
+
+            cache = container "Cache de Ubicaciones" {
+                description "Mantiene en memoria la última ubicación conocida de cada repartidor."
+                technology "Redis"
+            }
+
+            geoDb = container "Base de Datos Geoespacial" {
+                description "Almacena las posiciones e información espacial de los repartidores."
+                technology "PostgreSQL + PostGIS"
+            }
+
+            orders = container "Servicio de Asignación de Pedidos" {
+                description "Gestiona pedidos y asigna repartidores disponibles."
+                technology "Servicio independiente"
+            }
+
+            notifications = container "Servicio de Notificaciones" {
+                description "Envía actualizaciones de pedidos y eventos de tracking."
+                technology "Push / WebSocket"
+            }
+
+            database = container "Base de Datos Operacional" {
+                description "Almacena pedidos, usuarios, repartidores y estados operativos."
+                technology "PostgreSQL"
+            }
+        }
+
+        repartidor -> gateway "Envía telemetría GPS y recibe notificaciones"
+        cliente -> gateway "Consulta ubicación y estado del pedido"
+        operador -> gateway "Gestiona pedidos y operaciones logísticas"
+
+        gateway -> ingestion "Envía pings GPS"
+        gateway -> orders "Solicita operaciones de pedidos"
+        gateway -> cache "Consulta ubicación actual"
+
+        ingestion -> buffer "Publica eventos GPS"
+        buffer -> processor "Entrega eventos GPS"
+
+        processor -> spatial "Envía posiciones procesadas"
+
+        spatial -> cache "Actualiza última ubicación"
+        spatial -> geoDb "Indexa posiciones espacialmente"
+
+        cache -> gateway "Retorna ubicación actual"
+
+        orders -> database "Lee y actualiza pedidos"
+        orders -> cache "Consulta repartidores disponibles"
+        orders -> notifications "Genera eventos de asignación"
+
+        notifications -> repartidor "Envía notificaciones"
+        notifications -> cliente "Envía actualizaciones del pedido"
     }
 
     views {
-        container ultraDelivery {
+
+        container ultradelivery "UltraDelivery-Containers" {
             include *
-            autoLayout
+            autolayout lr
+
+            title "UltraDelivery - Diagrama de Contenedores"
+
+            description "Diagrama C4 Nivel 2 de la arquitectura de UltraDelivery."
+        }
+
+        styles {
+
+            element "Person" {
+                shape person
+            }
+
+            element "Container" {
+                shape roundedbox
+            }
+
+            element "Database" {
+                shape cylinder
+            }
         }
     }
-
 }
