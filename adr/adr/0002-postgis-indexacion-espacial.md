@@ -1,7 +1,0 @@
-| | |
-|---|---|
-| **Título** | 002: Uso de PostgreSQL + PostGIS para indexación espacial |
-| **Estado** | Aceptado |
-| **Contexto** | El sistema requiere indexar y consultar eficientemente la ubicación de miles de repartidores en tiempo real, dado que la indexación espacial lenta fue identificada como una situación crítica a prever en el caso. |
-| **Decisión** | Se utilizará **PostgreSQL con la extensión PostGIS** para el almacenamiento e indexación espacial persistente, usando índices GiST optimizados para consultas geográficas (radio de búsqueda, proximidad).<br><br>**Rationale:**<br>- **Madurez:** PostGIS es un estándar robusto y ampliamente probado para datos geoespaciales.<br>- **Desempeño:** los índices GiST permiten consultas de proximidad eficientes incluso con grandes volúmenes de datos.<br>- **Compatibilidad:** se integra bien con el resto del stack basado en PostgreSQL. |
-| **Consecuencias** | **Positivas:**<br>- Consultas espaciales (ej. "repartidores en un radio de 2km") con buen desempeño.<br>- Integridad transaccional (ACID) para los datos históricos de ubicación.<br>- Amplio soporte y documentación.<br><br>**Negativas:**<br>- La indexación espacial persistente puede seguir siendo un cuello de botella si no se combina con caché en memoria.<br>- Requiere afinamiento (tuning) de índices para mantener el desempeño bajo alta escritura.<br><br>**Relación con NFRs:** NFR-02 (Desempeño), NFR-04 (Confiabilidad/Resiliencia). |
