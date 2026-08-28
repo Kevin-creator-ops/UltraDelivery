@@ -1,1 +1,7 @@
-
+| | |
+|---|---|
+| **Título** | 005: Estrategia de backpressure y degradación controlada ante saturación |
+| **Estado** | Aceptado |
+| **Contexto** | La situación crítica principal identificada en el caso es la saturación del buffer de ingesta ante picos extremos de tráfico, lo que podría provocar pérdida de datos de telemetría o caída del servicio. |
+| **Decisión** | Se implementará un **Controlador de Backpressure** dentro del Servicio de Ingesta, que limita la tasa de aceptación de pings cuando el buffer (Kafka) se acerca a su capacidad, aplicando técnicas de *rate limiting*, colas de prioridad y, en casos extremos, muestreo de pings (reducir la frecuencia de envío aceptada por repartidor) en lugar de rechazar conexiones por completo.<br><br>**Rationale:**<br>- **Disponibilidad:** evita caídas totales del servicio ante picos extremos.<br>- **Degradación controlada:** es preferible reducir la frecuencia de actualización de ubicación que perder el servicio completo.<br>- **Protección del sistema:** evita que la saturación se propague a los servicios de asignación y notificación. |
+| **Consecuencias** | **Positivas:**<br>- El sistema se mantiene disponible incluso en condiciones de sobrecarga extrema.<br>- Previene efectos en cascada hacia otros servicios.<br><br>**Negativas:**<br>- Bajo carga extrema, la precisión de la ubicación en tiempo real puede degradarse temporalmente (trade-off desempeño vs. disponibilidad).<br>- Requiere lógica adicional y pruebas exhaustivas de los umbrales de activación.<br><br>**Relación con NFRs:** NFR-03 (Disponibilidad), NFR-04 (Confiabilidad/Resiliencia). |
