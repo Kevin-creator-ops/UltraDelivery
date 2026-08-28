@@ -1,1 +1,7 @@
-
+| | |
+|---|---|
+| **Título** | 004: Escalado horizontal automático del Servicio de Ingesta |
+| **Estado** | Aceptado |
+| **Contexto** | El volumen de pings GPS puede variar drásticamente (picos de hasta 150,000 pings/seg durante horas de alta demanda de entregas). Un dimensionamiento fijo de infraestructura generaría sobrecostos en horas valle o saturación en horas pico. |
+| **Decisión** | El Servicio de Ingesta se desplegará en contenedores orquestados por **Kubernetes**, con **Horizontal Pod Autoscaler (HPA)** configurado según métricas de CPU, memoria y lag de consumo de Kafka, permitiendo escalar automáticamente el número de instancias según la demanda.<br><br>**Rationale:**<br>- **Escalabilidad elástica:** se ajusta automáticamente a los picos de tráfico sin intervención manual.<br>- **Eficiencia de costos:** reduce instancias en horas de baja demanda.<br>- **Alineado con NFR-01.** |
+| **Consecuencias** | **Positivas:**<br>- Responde automáticamente a picos sin sobreaprovisionamiento constante.<br>- Mejora la resiliencia ante variabilidad de carga.<br><br>**Negativas:**<br>- El escalado no es instantáneo (existe un tiempo de arranque de nuevos pods), lo que puede generar saturación momentánea en picos muy súbitos.<br>- Requiere configuración cuidadosa de métricas y umbrales para evitar oscilaciones (scaling flapping).<br><br>**Relación con NFRs:** NFR-01 (Escalabilidad), NFR-03 (Disponibilidad). |
